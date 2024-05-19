@@ -1,0 +1,13 @@
+import pandas as pd
+
+#filter just the promotors
+
+gtf_file = 'path_to_your_gtf_file_with_added_promoters'
+column_names = ['Seqid', 'Source', 'Type', 'Start', 'End', 'Score', 'Strand', 'Frame', 'Suppl']
+df = pd.read_csv(gtf_file, sep='\t', header=None, names=column_names, dtype={'Start': int, 'End': int}, comment='#')
+
+promotor_df = df[df['Type'] == 'promotor']
+
+output_file = 'Just_Promoters.gtf'
+
+promotor_df.to_csv(output_file, sep='\t', header=False, index=False)

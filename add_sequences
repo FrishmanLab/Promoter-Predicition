@@ -1,0 +1,34 @@
+import pandas as pd
+from Bio import SeqIO
+
+# add sequences to either promoters or non-promoters
+
+input_gtf_path = 'path_to_your_file'
+input_genome_path = 'path_to_your_fasta_file'
+
+
+def add_seqs(input_genome_path, input_gtf_path):
+    column_names = ['Seqid', 'Source', 'Type', 'Start', 'End', 'Score', 'Strand', 'Frame', 'Suppl']
+    df = pd.read_csv(input_gtf_path, sep='\t', header=None, names=column_names, dtype={'Start': int, 'End': int}, comment='#')
+    df['Seq'] = ""
+
+    genome_sequences = SeqIO.to_dict(SeqIO.parse(input_genome_path, "fasta"))
+
+    for index, row in df.iterrows():
+        seqid = row['Seqid']
+        strand = row['Strand']
+        start = row['Start'] - 1
+        end = row['End']
+        if strand == '+':
+            seq = str(genome_sequences[seqid].seq[start:end])
+        elif strand == '-':
+            seq = str(genome_sequences[seqid].seq[start:end].reverse_complement())
+        else:
+            seq = ""
+        df.at[index, 'Seq'] = seq
+
+    df.to_csv(input_gtf_path + '+rev_seqs.gtf', sep='\t', header=False, index=False)
+    print('File with sequences was saved to +seqs.gtf')
+    return df
+
+add_seqs(input_genome_path, input_gtf_path)

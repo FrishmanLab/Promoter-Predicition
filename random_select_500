@@ -1,0 +1,26 @@
+import random
+from Bio import SeqIO
+
+input_file = 'add_path_to_your_fasta_file'
+output_file = 'add_path_to_desired_place'
+
+with open(output_file, "w") as out_handle:
+    
+    for record in SeqIO.parse(input_file, "fasta"):
+        sequence = str(record.seq)
+        print("length:", len(sequence)) 
+     
+        if len(sequence) <= 500:
+            out_handle.write(">" + record.id + "\n")
+            out_handle.write(sequence + "\n")
+        else:
+            start = random.randint(0, len(sequence) - 500)
+            print("Startindex:", start) 
+            end = start + 500
+            if end > len(sequence):  
+                end = len(sequence)
+                start = end - 500
+            print("Endindex:", end)  
+            random_sequence = sequence[start:end] 
+            out_handle.write(">" + record.id + "\n")
+            out_handle.write(random_sequence + "\n")

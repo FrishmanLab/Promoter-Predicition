@@ -1,0 +1,66 @@
+import pandas as pd
+from Bio import SeqIO
+
+# add non promoters to file with just promoters to reduce the file size
+
+def create_non_promotor_gtf(input_gtf_path, output_gtf_path):
+
+    df = pd.read_csv(input_gtf_path, sep="\t", header=None, names=["Seqid", "Source", "Type", "Start", "End", "Score", "Strand", "Frame", "Suppl"])
+   
+    df_sorted = df.sort_values(by=["Seqid", "Start"])
+    
+    non_promotor_regions = []
+
+    prev_seqname = None
+    prev_stop = None
+    for index, row in df_sorted.iterrows():
+        seqname = row['Seqid']
+        start = row['Start']
+        end = row['End']
+
+        if prev_seqname is not None and prev_seqname == seqname and start > prev_stop + 1:
+    
+            non_promotor_regions.append({
+                'Seqid': seqname,
+                'Source': row['Source'],
+                'Type': 'non_promotor', 
+                'Start': prev_stop + 1,
+                'End': start - 1,
+                'Score': row['Score'],  
+                'Strand': row['Strand'],
+                'Frame': row['Frame'],
+                'Suppl': row['Suppl']  
+            })
+
+        if prev_seqname != seqname:
+          
+            prev_stop = None
+
+        prev_seqname = seqname
+        prev_stop = end
+   
+    non_promotor_df = pd.DataFrame(non_promotor_regions)
+ 
+    merged_df = pd.concat([df, non_promotor_df])
+
+    merged_df_sorted = merged_df.sort_values(by=["Seqid", "Start"])
+
+    merged_df_sorted.to_csv(output_gtf_path, sep="\t", index=False, header=False, columns=["Seqid", "Source", "Type", "Start", "End", "Score", "Strand", "Frame", "Suppl"])
+
+input_gtf_path = 'add_path_to_just_promoters'
+
+output_gtf_path = 'add_path_to_where_you_want_to_save_non-promoters'
+
+create_non_promotor_gtf(input_gtf_path, output_gtf_path)
+
+#filter just the non promotors
+
+gtf_file = 'file_to_your_added_non-promoters'
+column_names = ['Seqid', 'Source', 'Type', 'Start', 'End', 'Score', 'Strand', 'Frame', 'Suppl']
+df = pd.read_csv(gtf_file, sep='\t', header=None, names=column_names, dtype={'Start': int, 'End': int}, comment='#')
+
+promotor_df = df[df['Type'] != 'promotor']
+
+output_file = 'Just_non_promoters.gtf'
+
+promotor_df.to_csv(output_file, sep='\t', header=False, index=False)

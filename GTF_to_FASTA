@@ -1,0 +1,17 @@
+from Bio import SeqIO
+
+gtfseq_file = 'path_to_your_GTF_file_WITH_sequences'
+
+def gtfseq_to_fasta(gtfseq_file):
+    with open(gtfseq_file, 'r') as tsv:
+        with open(gtfseq_file + '.fasta', 'w') as fasta:
+            line_number = 0  
+            for line in tsv:
+                line_number += 1  
+                print("Processing line:", line_number)  
+                columns = line.strip().split('\t')
+                header = '_'.join(columns[:9])
+                sequence = columns[9]
+                fasta.write(f'>{header}\n{sequence}\n')
+
+gtfseq_to_fasta(gtfseq_file)

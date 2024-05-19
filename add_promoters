@@ -1,0 +1,58 @@
+import pandas as pd
+from Bio import SeqIO
+
+def extract_id(string_series, pattern):
+    return string_series.str.extract(pattern, expand=False)
+
+gtf_file = 'add_path_to_your_gtf_file'
+
+def gtf_to_df_with_genes(gtf_file):
+    column_names = ['Seqid', 'Source', 'Type', 'Start', 'End', 'Score', 'Strand', 'Frame', 'Suppl']
+    df = pd.read_csv(gtf_file, sep='\t', index_col=False, names=column_names, dtype={'Start': int, 'End': int}, comment='#')
+    
+    gene_ids = pd.Series([], dtype='object')
+    if df['Source'].eq('Helixer').any():
+        gene_ids = extract_id(df['Suppl'], r'Parent=([^;]+)')
+    else:
+        gene_ids = extract_id(df['Suppl'], r'transcript_id "([^"]+)"')
+    
+    df['Genes'] = gene_ids
+    print(df.head())  # Moved the print statement inside the function
+    return df
+
+def add_promotors(gtf_file):
+    df = gtf_to_df_with_genes(gtf_file)
+    output_dfs = []  # Create an empty list to store the modified sub-dataframes
+
+    for _, sub_df in df.groupby('Genes'):
+        df_exons = sub_df[sub_df['Type'] == 'CDS'].sort_values('Start')
+        if len(df_exons) > 0:
+            if df_exons['Strand'].iloc[0] == '+':
+                first_exon = df_exons.iloc[0]
+                promotor_row = first_exon.copy()
+                promotor_row['Type'] = 'promotor'
+                if int(promotor_row['Start']) > 500:
+                    promotor_row['End'] = int(promotor_row['Start']) + 2
+                    promotor_row['Start'] = int(promotor_row['Start']) - 500
+                elif int(promotor_row['Start']) < 500 and int(promotor_row['Start']) > 10:
+                    promotor_row['End'] = int(promotor_row['Start']) + 2
+                    promotor_row['Start'] = 1 
+            elif df_exons['Strand'].iloc[0] == '-':
+                first_exon = df_exons.iloc[-1]
+                promotor_row = first_exon.copy()
+                promotor_row['Type'] = 'promotor'
+                promotor_row['Start'] = int(promotor_row['End']) - 2
+                promotor_row['End'] = int(promotor_row['End']) + 500
+            sub_df_with_promotor = pd.concat([sub_df, promotor_row.to_frame().T], ignore_index=True)
+            output_dfs.append(sub_df_with_promotor)
+        else:
+            output_dfs.append(sub_df)
+
+    output_df = pd.concat(output_dfs, ignore_index=True)
+
+    output_df = output_df[['Seqid', 'Source', 'Type', 'Start', 'End', 'Score', 'Strand', 'Frame', 'Suppl']]
+    output_file = 'GTF_File+promoters.gtf'
+    output_df.to_csv(output_file, sep='\t', header=False, index=False)
+    return output_df
+
+add_promotors(gtf_file)
