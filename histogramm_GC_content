@@ -1,0 +1,25 @@
+import matplotlib.pyplot as plt
+from Bio import SeqIO
+
+def calculate_gc_content(sequence):
+    sequence = sequence.upper() 
+    gc_count = sequence.count('G') + sequence.count('C') 
+    total_bases = len(sequence)
+    gc_content = (gc_count / total_bases) * 100
+    return gc_content
+
+def plot_gc_content_histogram(fasta_file):
+    gc_contents = []
+    for record in SeqIO.parse(fasta_file, "fasta"):
+        gc_content = calculate_gc_content(str(record.seq))
+        gc_contents.append(gc_content)
+    
+    plt.hist(gc_contents, bins=20, color='skyblue', edgecolor='black')
+    plt.xlabel('GC Content (%)')
+    plt.ylabel('Frequency')
+    plt.title('GC Content Histogram')
+    plt.grid(True)
+    plt.show()
+
+fasta_file = 'your_fasta_file'
+plot_gc_content_histogram(fasta_file)
